@@ -56,37 +56,79 @@ def readfile():
         sensor = Sensor(word[0],word[1],word[2],word[3],word[4],word[5])
         dicts[sensor.id_sensor].append(sensor)
 
+
+def updateTableFreq(listSensor,sensor,start,end,idx,table,indexValidID):
+
+        if (sensor.temperature != listSensor[idx + 1].temperature):
+            indexxSensor = valid_id.index(indexValidID)
+            table[indexxSensor][0] += 1
+        if (sensor.humidity != listSensor[idx + 1].humidity):
+            indexxSensor = valid_id.index(indexValidID)
+            table[indexxSensor][1] += 1
+        if (sensor.airPressure != listSensor[idx + 1].airPressure):
+            indexxSensor = valid_id.index(indexValidID)
+            table[indexxSensor][2] += 1
+        if (sensor.voltage != listSensor[idx + 1].voltage):
+            indexxSensor = valid_id.index(indexValidID)
+            table[indexxSensor][3] += 1
+
+
+def updateTableAge(listSensor, sensor, start, end, idx, table, indexValidID):
+    if (sensor.temperature != listSensor[idx + 1].temperature):
+        indexxSensor = valid_id.index(indexValidID)
+        table[indexxSensor][0] += 1
+    if (sensor.humidity != listSensor[idx + 1].humidity):
+        indexxSensor = valid_id.index(indexValidID)
+        table[indexxSensor][1] += 1
+    if (sensor.airPressure != listSensor[idx + 1].airPressure):
+        indexxSensor = valid_id.index(indexValidID)
+        table[indexxSensor][2] += 1
+    if (sensor.voltage != listSensor[idx + 1].voltage):
+        indexxSensor = valid_id.index(indexValidID)
+        table[indexxSensor][3] += 1
 def getFreq(start,end,tableFreq):
     for i in valid_id:
         listSensor = dicts[i]
-        print(i)
         for idx, sensor in enumerate(listSensor):
             if(idx < len(listSensor)-1):
                 if (int(sensor.time) >= int(start) and int(sensor.time) <= int(end)):
-                    if (sensor.temperature != listSensor[idx+1].temperature):
-                        indexxSensor = valid_id.index(i)
-                        tableFreq[indexxSensor][0] += 1
-                    if (sensor.humidity != listSensor[idx+1].humidity):
-                        indexxSensor = valid_id.index(i)
-                        tableFreq[indexxSensor][1] += 1
-                    if (sensor.airPressure != listSensor[idx+1].airPressure):
-                        indexxSensor = valid_id.index(i)
-                        tableFreq[indexxSensor][2] += 1
-                    if (sensor.voltage != listSensor[idx+1].voltage):
-                        indexxSensor = valid_id.index(i)
-                        tableFreq[indexxSensor][3] += 1
+                    updateTableFreq(listSensor,sensor,start,end,idx,tableFreq,i)
                 elif (int(sensor.time) > int(end)):
                     break
+def getAge(start,end,tableAge):
+    for idx in valid_id:
+        listSensor = dicts[idx]
+        count = 0
+        flag = 0
+        tempSensor = initSensor
+        for i in range(len(listSensor)-1,-1,-1):
+            if (i>0):
+                if (int(listSensor[i].time) <= int(end) and int(listSensor[i].time) >= int(start)):
+                    if (flag == 0):
+                        tempSensor = listSensor[i]
+                        flag = 1
+                    indexxSensor = valid_id.index(idx)
+                    if(listSensor[i].temperature != listSensor[i-1].temperature and tableAge[indexxSensor][0]== 0):
+                        tableAge[indexxSensor][0] =int(listSensor[i].time) - int(listSensor[i-1].time)
+                        count += 1
+                    if (listSensor[i].humidity != listSensor[i - 1].humidity and tableAge[indexxSensor][1] == 0):
+                        tableAge[indexxSensor][1] = int(listSensor[i].time) - int(listSensor[i - 1].time)
+                        count += 1
+                    if (listSensor[i].airPressure != listSensor[i - 1].airPressure and tableAge[indexxSensor][2] == 0):
+                        tableAge[indexxSensor][2] = int(listSensor[i].time) - int(listSensor[i - 1].time)
+                        count += 1
+                    if (listSensor[i].voltage != listSensor[i - 1].voltage and tableAge[indexxSensor][3] == 0):
+                        tableAge[indexxSensor][3] = int(listSensor[i].time) - int(listSensor[i - 1].time)
+                        count += 1
+                    if (count == 4):
+                        break
+                elif (int(listSensor[i].time) <= int(start)):
+                    indexxSensor = valid_id.index(idx)
+                    for i in range(numProperty):
+                        if (tableAge[indexxSensor][i] == 0):
+                            tableAge[indexxSensor][i] = int(tempSensor.time) - int(start)
 
 
-def testDict():
-    count = 0
-    sen = dicts['A434F11EEE06']
-    for idx,i in enumerate(sen):
-        if (idx < len(sen)-3):
-            if (i.voltage != sen[idx+1].voltage):
-                count += 1
-    print(count)
 
 hashTable()
 removeDefaultValue()
@@ -102,6 +144,15 @@ def frequency():
     getFreq(start,end,tableFreq)
     return jsonify (
         tableFreq.tolist()
+    )
+@app.route('/age')
+def age():
+    tableAge = np.zeros((len(valid_id), numProperty))
+    start = request.args.get('start', None)
+    end = request.args.get('end', None)
+    getAge(start,end,tableAge)
+    return jsonify (
+        tableAge.tolist()
     )
 
 
