@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from flask import Flask, request
 from flask import jsonify
 from collections import defaultdict
@@ -32,6 +33,9 @@ initSensor = Sensor(0,0,0,0,0,0)
 dicts = {
     '1': [initSensor]
 }
+dictsDuration = {
+    '1': [initSensor]
+}
 
 def hashTable():
     sensor0 = Sensor(0,0,0,0,0,0)
@@ -41,6 +45,7 @@ def hashTable():
 
 def removeDefaultValue():
     del dicts['1']
+    del dictsDuration['1']
     for i in valid_id:
         del dicts[i][0]
 # string = [{'id' : 'id1','f': 2},{'id' : 'id2','f': 32}]
@@ -128,11 +133,30 @@ def getAge(start,end,tableAge):
                         if (tableAge[indexxSensor][i] == 0):
                             tableAge[indexxSensor][i] = int(tempSensor.time) - int(start)
 
+def getDuratation(start, end, sensorID, prop):
+    listSensor = dicts[sensorID]
+    for sensor in listSensor:
+        if (int(sensor.time) > int(start) and int(sensor.time) < int(end)):
+            key = getattr(sensor,prop)
+            isExist = key in dictsDuration.keys()
+            if (isExist == False):
+                dictsDuration[key] = [sensor]
+            else:
+                dictsDuration[key].append(sensor)
 
+def testPandas():
+    d = {'col1': [initSensor], 'col2':[1]}
+    df = pd.DataFrame(data=d)
+    df = df.append({'col1': initSensor}, ignore_index=True)
+    print(df)
 
 hashTable()
 removeDefaultValue()
 readfile()
+getDuratation(1522937826,1522980630,'A434F11F1F02','humidity')
+print("asd")
+
+# getDuratation("1","2","A434F11A3408",0)
 # print(tableFreq)
 app = Flask(__name__)
 # http://127.0.0.1:5000/frequency?start=1&end=2
@@ -155,5 +179,15 @@ def age():
         tableAge.tolist()
     )
 
+@app.route('/duration')
+def duration():
+    d = {'col1': [initSensor], 'col2': [1]}
+    df = pd.DataFrame(data=d)
+    df = df.append({'col1': initSensor}, ignore_index=True)
+    # df = df.values.tolist()
+    print(df)
+    return jsonify (
+        df.to_json()
+    )
 
 
