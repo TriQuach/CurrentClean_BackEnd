@@ -33,9 +33,6 @@ initSensor = Sensor(0,0,0,0,0,0)
 dicts = {
     '1': [initSensor]
 }
-dictsDuration = {
-    '1': [initSensor]
-}
 
 def hashTable():
     sensor0 = Sensor(0,0,0,0,0,0)
@@ -45,9 +42,10 @@ def hashTable():
 
 def removeDefaultValue():
     del dicts['1']
-    del dictsDuration['1']
+
     for i in valid_id:
         del dicts[i][0]
+
 # string = [{'id' : 'id1','f': 2},{'id' : 'id2','f': 32}]
 
 def readfile():
@@ -133,7 +131,11 @@ def getAge(start,end,tableAge):
                         if (tableAge[indexxSensor][i] == 0):
                             tableAge[indexxSensor][i] = int(tempSensor.time) - int(start)
 
-def getDuratation(start, end, sensorID, prop):
+def initDictDuration(start, end, sensorID, prop):
+    dictsDuration = {
+        '1': [initSensor]
+    }
+    del dictsDuration['1']
     listSensor = dicts[sensorID]
     for sensor in listSensor:
         if (int(sensor.time) > int(start) and int(sensor.time) < int(end)):
@@ -143,6 +145,17 @@ def getDuratation(start, end, sensorID, prop):
                 dictsDuration[key] = [sensor]
             else:
                 dictsDuration[key].append(sensor)
+    return  dictsDuration
+def getDuration(start,tableDuration, dictsDuration):
+    for idx, key in enumerate(dictsDuration.keys()):
+        duration = 0
+
+        listSensors = dictsDuration[key]
+        for i in range(len(listSensors)-1):
+            duration += int(listSensors[i+1].time) - int(listSensors[i].time)
+        duration += int(listSensors[0].time) - int(start)
+        tableDuration[idx][0] = (key)
+        tableDuration[idx][1] = (duration)
 
 def testPandas():
     d = {'col1': [initSensor], 'col2':[1]}
@@ -153,8 +166,7 @@ def testPandas():
 hashTable()
 removeDefaultValue()
 readfile()
-getDuratation(1522937826,1522980630,'A434F11F1F02','humidity')
-print("asd")
+
 
 # getDuratation("1","2","A434F11A3408",0)
 # print(tableFreq)
@@ -181,13 +193,16 @@ def age():
 
 @app.route('/duration')
 def duration():
-    d = {'col1': [initSensor], 'col2': [1]}
-    df = pd.DataFrame(data=d)
-    df = df.append({'col1': initSensor}, ignore_index=True)
-    # df = df.values.tolist()
-    print(df)
+
+    start = request.args.get('start', None)
+    end = request.args.get('end', None)
+    sensorID = request.args.get('sensorID', None)
+    prop = request.args.get('prop', None)
+    dictsDuration = initDictDuration(start,end,sensorID,prop)
+    tableDuration = np.zeros((len(dictsDuration.keys()), 2))
+    getDuration(start,tableDuration,dictsDuration)
     return jsonify (
-        df.to_json()
+        tableDuration.tolist()
     )
 
 
