@@ -2,8 +2,11 @@ import numpy as np
 import pandas as pd
 from flask import Flask, request
 from flask import jsonify
+from flask import Response
+import QuickSort
 from collections import defaultdict
 import json
+import matplotlib
 
 valid_id = ['A434F11F1B05', 'A434F11EEE06', 'A434F11F1684', 'A434F11F1E86', 'A434F11EF48B', 'A434F11F2003',
 				'A434F11EEF0E', 'A434F11EA281', 'A434F11F1D06', 'A434F11F1000', 'A434F11F1606', 'A434F11FF78E',
@@ -20,6 +23,8 @@ numProperty = 4 #Temperature;Humidity;AirPressure;Voltage
 
 k = np.zeros((5, 5))
 
+
+
 class Sensor:
     def __init__(self, time, id_sensor, temperature, humidity, airPressure, voltage):
         self.time = time
@@ -28,6 +33,25 @@ class Sensor:
         self.humidity = humidity
         self.airPressure = airPressure
         self.voltage = voltage
+
+class HeatMap:
+    def __init__(self, value, hex):
+        self.value = value
+        self.hex = hex
+
+    def toJSON(self):
+        return json.dumps(self, default=lambda o: o.__dict__,
+                          sort_keys=True, indent=4)
+
+class CustomEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, HeatMap):
+            return {
+                "value": obj.value,
+                "hex": obj.hex
+            }
+        #Let the base class handle the problem.
+        return json.JSONEncoder.default(self, obj)
 
 initSensor = Sensor(0,0,0,0,0,0)
 dicts = {
@@ -163,6 +187,32 @@ def testPandas():
     df = df.append({'col1': initSensor}, ignore_index=True)
     print(df)
 
+def moveTo1dArray(tableFreq):
+    temp = []
+    for i in range(len(tableFreq)):
+        for j in range(len(tableFreq[i])):
+            temp.append(tableFreq[i][j])
+    return temp
+def createHeatMap(tableFreq):
+    # 0.9 i 0.4
+    # [0.9, i, 0.2]
+    temp = moveTo1dArray(tableFreq)
+    norm = [float(i) / max(temp) for i in temp]
+    arrayHex = []
+    for i in norm:
+        hex = matplotlib.colors.to_hex([ 0.0,i, 0.0])
+        arrayHex.append(hex)
+    print(arrayHex)
+    index = 0
+    tableHeatMap = [[HeatMap(123,'asd') for j in range(numProperty)] for i in range(len(valid_id))]
+    for i in range(len(tableFreq)):
+        for j in range(len(tableFreq[i])):
+            temp = HeatMap(tableFreq[i][j],arrayHex[index])
+            tableHeatMap[i][j] = temp
+            index += 1
+    return tableHeatMap
+
+
 hashTable()
 removeDefaultValue()
 readfile()
@@ -178,9 +228,8 @@ def frequency():
     start = request.args.get('start', None)
     end = request.args.get('end', None)
     getFreq(start,end,tableFreq)
-    return jsonify (
-        tableFreq.tolist()
-    )
+    tableHeatMap = createHeatMap(tableFreq)
+    return json.dumps(tableHeatMap, cls=CustomEncoder)
 @app.route('/age')
 def age():
     tableAge = np.zeros((len(valid_id), numProperty))
