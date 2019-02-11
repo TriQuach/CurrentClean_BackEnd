@@ -5,6 +5,7 @@ from flask import jsonify
 from flask import Response
 import QuickSort
 from collections import defaultdict
+import sklearn.utils
 import json
 import matplotlib
 
@@ -170,39 +171,52 @@ def initDictDuration(start, end, sensorID, prop):
             else:
                 dictsDuration[key].append(sensor)
     return  dictsDuration
-def getDuration(start,tableDuration, dictsDuration):
+def getDuration(start, dictsDuration):
+    tableDuration = np.zeros((len(dictsDuration.keys()), 2))
     for idx, key in enumerate(dictsDuration.keys()):
         duration = 0
 
         listSensors = dictsDuration[key]
-        for i in range(len(listSensors)-1):
-            duration += int(listSensors[i+1].time) - int(listSensors[i].time)
-        duration += int(listSensors[0].time) - int(start)
+        freq = len(listSensors)
         tableDuration[idx][0] = (key)
-        tableDuration[idx][1] = (duration)
+        tableDuration[idx][1] = (freq)
+    if (len(tableDuration) > 10):
+        data = pd.DataFrame(tableDuration)
+
+        test = data.sort_values([1], ascending=[False])
+
+        tableDuration = test.head(10).values
+        tableDuration = sklearn.utils.shuffle(tableDuration)
+
+    return tableDuration
 
 def testPandas():
     d = {'col1': [initSensor], 'col2':[1]}
     df = pd.DataFrame(data=d)
     df = df.append({'col1': initSensor}, ignore_index=True)
-    print(df)
 
-def moveTo1dArray(tableFreq):
+
+def moveTo1dArray(table):
     temp = []
-    for i in range(len(tableFreq)):
-        for j in range(len(tableFreq[i])):
-            temp.append(tableFreq[i][j])
+    for i in range(len(table)):
+        for j in range(len(table[i])):
+            temp.append(table[i][j])
     return temp
-def createHeatMap(tableFreq):
+def createHeatMapFreg(tableFreq):
     # 0.9 i 0.4
     # [0.9, i, 0.2]
+    # ([0.3, i, 0.4])
     temp = moveTo1dArray(tableFreq)
-    norm = [float(i) / max(temp) for i in temp]
+
+    temp_norm = [float(i) / max(temp) for i in temp]
+
+    lower, upper = 0.45, 1.0
+    norm = [lower + (upper - lower) * x for x in temp_norm]
     arrayHex = []
     for i in norm:
-        hex = matplotlib.colors.to_hex([ 0.0,i, 0.0])
+        hex = matplotlib.colors.to_hex([ i,i, 0.2])
         arrayHex.append(hex)
-    print(arrayHex)
+
     index = 0
     tableHeatMap = [[HeatMap(123,'asd') for j in range(numProperty)] for i in range(len(valid_id))]
     for i in range(len(tableFreq)):
@@ -212,6 +226,61 @@ def createHeatMap(tableFreq):
             index += 1
     return tableHeatMap
 
+def createHeatMapFregColumn(tableFreq):
+    # 0.9 i 0.4
+    # [0.9, i, 0.2]
+    # ([0.3, i, 0.4])
+    tableHeatMap = [[HeatMap(123, 'asd') for j in range(numProperty)] for i in range(len(valid_id))]
+    dataFrame = pd.DataFrame()
+    for i in range(len(tableFreq[0])):
+        col = tableFreq[:,i]
+        temp_norm = [1 - float(j) / max(col) for j in col]
+
+        lower, upper = 0.45, 1.0
+        norm = [lower + (upper - lower) * x for x in temp_norm]
+        arrayHeat = []
+
+        for idx, normValue in enumerate(norm):
+
+            hex = matplotlib.colors.to_hex([normValue, normValue, 0.2])
+            tempHeat = HeatMap(tableFreq[idx][i],hex)
+
+            arrayHeat.append(tempHeat)
+
+
+        data1 = pd.DataFrame(arrayHeat)
+        # print(arrayHeat)
+    #
+        # print('-----------')
+        # print(data1)
+        # print('-----------')
+        dataFrame = pd.concat([dataFrame,data1],axis=1)
+        # print (dataFrame.size)
+        #
+
+    return dataFrame.values
+    #
+    # print(dataFrame.values)
+    # return dataFrame.values
+
+def createHeatMapAge(tableAge):
+    # 0.9 i 0.4
+    # [0.9, i, 0.2]
+    temp = moveTo1dArray(tableAge)
+    norm = [float(i) / max(temp) for i in temp]
+    arrayHex = []
+    for i in norm:
+        hex = matplotlib.colors.to_hex([ 0.9,i, i])
+        arrayHex.append(hex)
+
+    index = 0
+    tableHeatMap = [[HeatMap(123,'asd') for j in range(numProperty)] for i in range(len(valid_id))]
+    for i in range(len(tableAge)):
+        for j in range(len(tableAge[i])):
+            temp = HeatMap(tableAge[i][j],arrayHex[index])
+            tableHeatMap[i][j] = temp
+            index += 1
+    return tableHeatMap
 
 hashTable()
 removeDefaultValue()
@@ -228,17 +297,18 @@ def frequency():
     start = request.args.get('start', None)
     end = request.args.get('end', None)
     getFreq(start,end,tableFreq)
-    tableHeatMap = createHeatMap(tableFreq)
-    return json.dumps(tableHeatMap, cls=CustomEncoder)
+    tableHeatMap = createHeatMapFregColumn(tableFreq)
+    print(type(tableHeatMap))
+    return json.dumps(tableHeatMap.tolist(), cls=CustomEncoder)
 @app.route('/age')
 def age():
     tableAge = np.zeros((len(valid_id), numProperty))
     start = request.args.get('start', None)
     end = request.args.get('end', None)
     getAge(start,end,tableAge)
-    return jsonify (
-        tableAge.tolist()
-    )
+    tableHeatMap = createHeatMapFreg(tableAge)
+    print(type(tableHeatMap))
+    return json.dumps(tableHeatMap, cls=CustomEncoder)
 
 @app.route('/duration')
 def duration():
@@ -248,8 +318,8 @@ def duration():
     sensorID = request.args.get('sensorID', None)
     prop = request.args.get('prop', None)
     dictsDuration = initDictDuration(start,end,sensorID,prop)
-    tableDuration = np.zeros((len(dictsDuration.keys()), 2))
-    getDuration(start,tableDuration,dictsDuration)
+
+    tableDuration = getDuration(start,dictsDuration)
     return jsonify (
         tableDuration.tolist()
     )
