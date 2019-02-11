@@ -36,9 +36,10 @@ class Sensor:
         self.voltage = voltage
 
 class HeatMap:
-    def __init__(self, value, hex):
+    def __init__(self, value, hex, isSelected):
         self.value = value
         self.hex = hex
+        self.isSelected = isSelected
 
     def toJSON(self):
         return json.dumps(self, default=lambda o: o.__dict__,
@@ -49,7 +50,8 @@ class CustomEncoder(json.JSONEncoder):
         if isinstance(obj, HeatMap):
             return {
                 "value": obj.value,
-                "hex": obj.hex
+                "hex": obj.hex,
+                "isSelected": obj.isSelected
             }
         #Let the base class handle the problem.
         return json.JSONEncoder.default(self, obj)
@@ -230,7 +232,7 @@ def createHeatMapFregColumn(tableFreq):
     # 0.9 i 0.4
     # [0.9, i, 0.2]
     # ([0.3, i, 0.4])
-    tableHeatMap = [[HeatMap(123, 'asd') for j in range(numProperty)] for i in range(len(valid_id))]
+    tableHeatMap = [[HeatMap(123, 'asd',False) for j in range(numProperty)] for i in range(len(valid_id))]
     dataFrame = pd.DataFrame()
     for i in range(len(tableFreq[0])):
         col = tableFreq[:,i]
@@ -243,7 +245,7 @@ def createHeatMapFregColumn(tableFreq):
         for idx, normValue in enumerate(norm):
 
             hex = matplotlib.colors.to_hex([normValue, normValue, 0.2])
-            tempHeat = HeatMap(tableFreq[idx][i],hex)
+            tempHeat = HeatMap(tableFreq[idx][i],hex, False)
 
             arrayHeat.append(tempHeat)
 
