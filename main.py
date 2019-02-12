@@ -9,6 +9,7 @@ import sklearn.utils
 import json
 import matplotlib
 
+
 valid_id = ['A434F11F1B05', 'A434F11EEE06', 'A434F11F1684', 'A434F11F1E86', 'A434F11EF48B', 'A434F11F2003',
 				'A434F11EEF0E', 'A434F11EA281', 'A434F11F1D06', 'A434F11F1000', 'A434F11F1606', 'A434F11FF78E',
 				'A434F11F3681', 'A434F11F0C80', 'A434F11F1B88', 'A434F11EF609', 'A434F11FFE0D', 'A434F11F1B8A',
@@ -284,10 +285,33 @@ def createHeatMapAge(tableAge):
             index += 1
     return tableHeatMap
 
+def findValueForOneAttributeOfCell(sensorID,prop,start,end):
+    listSensor = dicts[sensorID]
+    array = []
+    step = 0
+    for idx,sensor in enumerate(listSensor):
+        if (int(sensor.time) > int(start) and int(sensor.time) < int(end)):
+            time = sensor.time
+            value = getattr(sensor, prop)
+            temp={'x':step,'y':value}
+            array.append(temp)
+            step += 2
+    for sub in array:
+        for key in sub:
+            sub[key] = float(sub[key])
+    return  array
+
+def findAllValueAllSensor(arrayCells,start,end):
+    array = []
+    for obj in arrayCells:
+        sensorID = list(obj.keys())[0]
+        temp = findValueForOneAttributeOfCell(sensorID,obj[sensorID],start,end)
+        array.append(temp)
+    return array
+
 hashTable()
 removeDefaultValue()
 readfile()
-
 
 # getDuratation("1","2","A434F11A3408",0)
 # print(tableFreq)
@@ -325,5 +349,13 @@ def duration():
     return jsonify (
         tableDuration.tolist()
     )
+
+@app.route('/comparecells', methods= ['POST'])
+def comparecells():
+    data = request.get_json()
+    print(data["start"])
+
+    res = findAllValueAllSensor(data["arrayCells"],data["start"],data["end"])
+    return(jsonify(res))
 
 
