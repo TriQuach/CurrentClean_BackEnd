@@ -8,7 +8,7 @@ from collections import defaultdict
 import sklearn.utils
 import json
 import matplotlib
-
+from flask_cors import CORS
 
 valid_id = ['A434F11F1B05', 'A434F11EEE06', 'A434F11F1684', 'A434F11F1E86', 'A434F11EF48B', 'A434F11F2003',
 				'A434F11EEF0E', 'A434F11EA281', 'A434F11F1D06', 'A434F11F1000', 'A434F11F1606', 'A434F11FF78E',
@@ -133,31 +133,14 @@ def getAge(start,end,tableAge):
         flag = 0
         tempSensor = initSensor
         for i in range(len(listSensor)-1,-1,-1):
-            if (i>0):
-                if (int(listSensor[i].time) <= int(end) and int(listSensor[i].time) >= int(start)):
-                    if (flag == 0):
-                        tempSensor = listSensor[i]
-                        flag = 1
-                    indexxSensor = valid_id.index(idx)
-                    if(listSensor[i].temperature != listSensor[i-1].temperature and tableAge[indexxSensor][0]== 0):
-                        tableAge[indexxSensor][0] =int(listSensor[i].time) - int(listSensor[i-1].time)
-                        count += 1
-                    if (listSensor[i].humidity != listSensor[i - 1].humidity and tableAge[indexxSensor][1] == 0):
-                        tableAge[indexxSensor][1] = int(listSensor[i].time) - int(listSensor[i - 1].time)
-                        count += 1
-                    if (listSensor[i].airPressure != listSensor[i - 1].airPressure and tableAge[indexxSensor][2] == 0):
-                        tableAge[indexxSensor][2] = int(listSensor[i].time) - int(listSensor[i - 1].time)
-                        count += 1
-                    if (listSensor[i].voltage != listSensor[i - 1].voltage and tableAge[indexxSensor][3] == 0):
-                        tableAge[indexxSensor][3] = int(listSensor[i].time) - int(listSensor[i - 1].time)
-                        count += 1
-                    if (count == 4):
-                        break
-                elif (int(listSensor[i].time) <= int(start)):
-                    indexxSensor = valid_id.index(idx)
-                    for i in range(numProperty):
-                        if (tableAge[indexxSensor][i] == 0):
-                            tableAge[indexxSensor][i] = int(tempSensor.time) - int(start)
+            if (int(listSensor[i].time) <= int(end) and int(listSensor[i].time) >= int(start)):
+                indexxSensor = valid_id.index(idx)
+                tableAge[indexxSensor][0] = float(listSensor[i].temperature)
+                tableAge[indexxSensor][1] = float(listSensor[i].humidity)
+                tableAge[indexxSensor][2] = float(listSensor[i].airPressure)
+                tableAge[indexxSensor][3] = float(listSensor[i].voltage)
+                break
+
 
 def initDictDuration(start, end, sensorID, prop):
     dictsDuration = {
@@ -173,6 +156,28 @@ def initDictDuration(start, end, sensorID, prop):
                 dictsDuration[key] = [sensor]
             else:
                 dictsDuration[key].append(sensor)
+
+    return  dictsDuration
+
+def initDictDurationAge(start, end, sensorID, prop):
+    dictsDuration = {
+        '1': [initSensor]
+    }
+    del dictsDuration['1']
+    listSensor = dicts[sensorID]
+    for i in range(len(listSensor)-1):
+        if (int(listSensor[i].time) >= int(start) and int(listSensor[i].time) <= int(end)):
+            key = getattr(listSensor[i],prop)
+            key_next = getattr(listSensor[i+1],prop)
+            isExist = key in dictsDuration.keys()
+            if (isExist == False):
+                dictsDuration[key] = [listSensor[i]]
+                if (key != key_next):
+                    dictsDuration[key].append(listSensor[i + 1])
+            else:
+                if (key != key_next):
+                    dictsDuration[key].append(listSensor[i])
+                    dictsDuration[key].append(listSensor[i+1])
     return  dictsDuration
 def getDuration(start, dictsDuration):
     tableDuration = np.zeros((len(dictsDuration.keys()), 2))
@@ -190,6 +195,32 @@ def getDuration(start, dictsDuration):
 
         tableDuration = test.head(10).values
         tableDuration = sklearn.utils.shuffle(tableDuration)
+
+    return tableDuration
+
+def getDurationAge(start, dictsDurationAge):
+    tableDuration = np.zeros((len(dictsDurationAge.keys()), 2))
+    for idx, key in enumerate(dictsDurationAge.keys()):
+        listSensors = dictsDurationAge[key]
+        duration = 0
+        for i in range(0,len(listSensors)-1,2):
+            duration += int(listSensors[i+1].time) - int(listSensors[i].time)
+        tableDuration[idx][0] = (key)
+        tableDuration[idx][1] = (duration)
+    # for idx, key in enumerate(dictsDurationAge.keys()):
+    #     duration = 0
+    #
+    #     listSensors = dictsDuration[key]
+    #     freq = len(listSensors)
+    #     tableDuration[idx][0] = (key)
+    #     tableDuration[idx][1] = (freq)
+    # if (len(tableDuration) > 10):
+    #     data = pd.DataFrame(tableDuration)
+    #
+    #     test = data.sort_values([1], ascending=[False])
+    #
+    #     tableDuration = test.head(10).values
+    #     tableDuration = sklearn.utils.shuffle(tableDuration)
 
     return tableDuration
 
@@ -221,10 +252,10 @@ def createHeatMapFreg(tableFreq):
         arrayHex.append(hex)
 
     index = 0
-    tableHeatMap = [[HeatMap(123,'asd') for j in range(numProperty)] for i in range(len(valid_id))]
+    tableHeatMap = [[HeatMap(123,'asd',False) for j in range(numProperty)] for i in range(len(valid_id))]
     for i in range(len(tableFreq)):
         for j in range(len(tableFreq[i])):
-            temp = HeatMap(tableFreq[i][j],arrayHex[index])
+            temp = HeatMap(tableFreq[i][j],arrayHex[index],False)
             tableHeatMap[i][j] = temp
             index += 1
     return tableHeatMap
@@ -277,10 +308,10 @@ def createHeatMapAge(tableAge):
         arrayHex.append(hex)
 
     index = 0
-    tableHeatMap = [[HeatMap(123,'asd') for j in range(numProperty)] for i in range(len(valid_id))]
+    tableHeatMap = [[HeatMap(123,'asd',False) for j in range(numProperty)] for i in range(len(valid_id))]
     for i in range(len(tableAge)):
         for j in range(len(tableAge[i])):
-            temp = HeatMap(tableAge[i][j],arrayHex[index])
+            temp = HeatMap(tableAge[i][j],arrayHex[index],False)
             tableHeatMap[i][j] = temp
             index += 1
     return tableHeatMap
@@ -312,10 +343,12 @@ def findAllValueAllSensor(arrayCells,start,end):
 hashTable()
 removeDefaultValue()
 readfile()
+dictsDuration = initDictDurationAge("1522932390","1522987200","A434F11F1B05","temperature")
+temp = dictsDuration["16.6"]
 
-# getDuratation("1","2","A434F11A3408",0)
-# print(tableFreq)
+
 app = Flask(__name__)
+CORS(app)
 # http://127.0.0.1:5000/frequency?start=1&end=2
 @app.route('/frequency')
 def frequency():
@@ -323,18 +356,24 @@ def frequency():
     start = request.args.get('start', None)
     end = request.args.get('end', None)
     getFreq(start,end,tableFreq)
+    print(type(tableFreq))
     tableHeatMap = createHeatMapFregColumn(tableFreq)
     print(type(tableHeatMap))
     return json.dumps(tableHeatMap.tolist(), cls=CustomEncoder)
 @app.route('/age')
 def age():
-    tableAge = np.zeros((len(valid_id), numProperty))
+    tableAge = [[0.0 for j in range(numProperty)] for i in range(len(valid_id))]
+    # tableHeatMap = [[HeatMap(123, 'asd', False) for j in range(numProperty)] for i in range(len(valid_id))]
+    # tableAge.astype(float)
     start = request.args.get('start', None)
     end = request.args.get('end', None)
     getAge(start,end,tableAge)
-    tableHeatMap = createHeatMapFreg(tableAge)
-    print(type(tableHeatMap))
-    return json.dumps(tableHeatMap, cls=CustomEncoder)
+    print(type(tableAge))
+    tableHeatMap = createHeatMapFregColumn(np.asarray(tableAge))
+    print(tableHeatMap)
+    # tableHeatMap = createHeatMapFreg(tableAge)
+
+    return json.dumps(tableHeatMap.tolist(), cls=CustomEncoder)
 
 @app.route('/duration')
 def duration():
@@ -346,6 +385,8 @@ def duration():
     dictsDuration = initDictDuration(start,end,sensorID,prop)
 
     tableDuration = getDuration(start,dictsDuration)
+    print("haha")
+    print(tableDuration)
     return jsonify (
         tableDuration.tolist()
     )
@@ -358,4 +399,17 @@ def comparecells():
     res = findAllValueAllSensor(data["arrayCells"],data["start"],data["end"])
     return(jsonify(res))
 
+@app.route('/existedtime')
+def existedtime():
 
+    start = request.args.get('start', None)
+    end = request.args.get('end', None)
+    sensorID = request.args.get('sensorID', None)
+    prop = request.args.get('prop', None)
+    dictsDurationAge = initDictDurationAge(start,end,sensorID,prop)
+    print(dictsDurationAge)
+    tableDurationAge = getDurationAge(start,dictsDurationAge)
+    print(tableDurationAge)
+    return jsonify (
+        tableDurationAge.tolist()
+    )
