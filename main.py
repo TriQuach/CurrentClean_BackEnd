@@ -20,6 +20,10 @@ valid_id = ['A434F11F1B05', 'A434F11EEE06', 'A434F11F1684', 'A434F11F1E86', 'A43
 				'A434F1204005', 'A434F11F1F03', 'A434F11F3902', 'A434F11EF68F', 'A434F11F1106', 'A434F11F1782',
 				'A434F11F1607', 'A434F11F4287', 'A434F11F1F02', 'A434F11F1406', 'A434F11F0E85', 'A434F11EEF8C',
 				'A434F11F1E09', 'A434F11F0E03', 'A434F11F1483', 'A434F11F1F85']
+valid_id_Mimic = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15',
+                  '16','17','18','19','20','21','22','23','24','25','26','27','28','29','30',
+                  '31','32','33','34','35','36','37','38','39','40','41','42','43','44','45',
+                  '46','47','48','49','50']
 numProperty = 4 #Temperature;Humidity;AirPressure;Voltage
 
 
@@ -35,6 +39,34 @@ class Sensor:
         self.humidity = humidity
         self.airPressure = airPressure
         self.voltage = voltage
+
+class Patient:
+    def __init__(self, time, id_patient, WT, LDL, HDL, HR,DBP,SBP,CVP,RR,SpO2,TMP,ABE,ACO2,APH,Hb,RBC,RBCF,WBC,MONO,EOS,LY,RDW,TC):
+        self.time = time
+        self.id_patient = id_patient
+        self.WT = WT
+        self.LDL = LDL
+        self.HDL = HDL
+        self.HR = HR
+        self.DBP = DBP
+        self.SBP = SBP
+        self.CVP = CVP
+        self.RR = RR
+        self.SpO2 = SpO2
+        self.TMP = TMP
+        self.ABE = ABE
+        self.ACO2 = ACO2
+        self.APH = APH
+        self.Hb = Hb
+        self.RBC = RBC
+        self.RBCF = RBCF
+        self.WBC = WBC
+        self.MONO = MONO
+        self.EOS = EOS
+        self.LY = LY
+        self.RDW = RDW
+        self.TC = TC
+
 
 class HeatMap:
     def __init__(self, value, hex, isSelected):
@@ -58,8 +90,12 @@ class CustomEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 initSensor = Sensor(0,0,0,0,0,0)
+initPatient = Patient(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
 dicts = {
     '1': [initSensor]
+}
+dictsPatient = {
+    '999': [initPatient]
 }
 
 def hashTable():
@@ -67,12 +103,19 @@ def hashTable():
     for i in valid_id:
         dicts[i] = [sensor0]
 
+def hashTableMimic():
+    patient0 = Patient(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+    for i in valid_id_Mimic:
+        dictsPatient[i] = [patient0]
 
 def removeDefaultValue():
     del dicts['1']
+    del dictsPatient['999']
 
     for i in valid_id:
         del dicts[i][0]
+    for i in valid_id_Mimic:
+        del dictsPatient[i][0]
 
 # string = [{'id' : 'id1','f': 2},{'id' : 'id2','f': 32}]
 
@@ -86,6 +129,37 @@ def readfile():
         word[5] = word[5].split(':')[1].strip('\n')
         sensor = Sensor(word[0],word[1],word[2],word[3],word[4],word[5])
         dicts[sensor.id_sensor].append(sensor)
+def readfileMimic():
+    f = open("Mimic.txt", "r")
+    for line in f:
+        word = line.split(',')
+        word[2] = word[2].split(':')[1]
+        word[3] = word[3].split(':')[1]
+        word[4] = word[4].split(':')[1]
+        word[5] = word[5].split(':')[1]
+        word[6] = word[6].split(':')[1]
+        word[7] = word[7].split(':')[1]
+        word[8] = word[8].split(':')[1]
+        word[9] = word[9].split(':')[1]
+        word[10] = word[10].split(':')[1]
+        word[11] = word[11].split(':')[1]
+        word[12] = word[12].split(':')[1]
+        word[13] = word[13].split(':')[1]
+        word[14] = word[14].split(':')[1]
+        word[15] = word[15].split(':')[1]
+        word[16] = word[16].split(':')[1]
+        word[17] = word[17].split(':')[1]
+        word[18] = word[18].split(':')[1]
+        word[19] = word[19].split(':')[1]
+        word[20] = word[20].split(':')[1]
+        word[21] = word[21].split(':')[1]
+        word[22] = word[22].split(':')[1]
+        word[23] = word[23].split(':')[1].strip('\n')
+
+
+        patient = Patient(word[0], word[1], word[2], word[3], word[4], word[5],word[6], word[7], word[8], word[9], word[10], word[11],word[12], word[13], word[14], word[15], word[16], word[17], word[18], word[19], word[20], word[21], word[22], word[23])
+        dictsPatient[patient.id_patient].append(patient)
+
 
 
 def updateTableFreq(listSensor,sensor,start,end,idx,table,indexValidID):
@@ -117,30 +191,138 @@ def updateTableAge(listSensor, sensor, start, end, idx, table, indexValidID):
     if (sensor.voltage != listSensor[idx + 1].voltage):
         indexxSensor = valid_id.index(indexValidID)
         table[indexxSensor][3] += 1
-def getFreq(start,end,tableFreq):
-    for i in valid_id:
-        listSensor = dicts[i]
-        for idx, sensor in enumerate(listSensor):
-            if(idx < len(listSensor)-1):
-                if (int(sensor.time) >= int(start) and int(sensor.time) <= int(end)):
-                    updateTableFreq(listSensor,sensor,start,end,idx,tableFreq,i)
-                elif (int(sensor.time) > int(end)):
-                    break
-def getAge(start,end,tableAge):
-    for idx in valid_id:
-        listSensor = dicts[idx]
-        count = 0
-        flag = 0
-        tempSensor = initSensor
-        for i in range(len(listSensor)-1,-1,-1):
-            if (int(listSensor[i].time) <= int(end) and int(listSensor[i].time) >= int(start)):
-                indexxSensor = valid_id.index(idx)
-                tableAge[indexxSensor][0] = float(listSensor[i].temperature)
-                tableAge[indexxSensor][1] = float(listSensor[i].humidity)
-                tableAge[indexxSensor][2] = float(listSensor[i].airPressure)
-                tableAge[indexxSensor][3] = float(listSensor[i].voltage)
-                break
+def getFreq(start,end,tableFreq,dataset):
+    if (dataset == "sensor"):
+        for i in valid_id:
+            listSensor = dicts[i]
+            for idx, sensor in enumerate(listSensor):
+                if(idx < len(listSensor)-1):
+                    if (int(sensor.time) >= int(start) and int(sensor.time) <= int(end)):
+                        updateTableFreq(listSensor,sensor,start,end,idx,tableFreq,i)
+                    elif (int(sensor.time) > int(end)):
+                        break
+    elif(dataset == "medical"):
+        for i in valid_id_Mimic:
+            listPatient = dictsPatient[i]
+            for idx, patient in enumerate(listPatient):
+                if(idx < len(listPatient)-1):
+                    if (int(patient.time) >= int(start) and int(patient.time) <= int(end)):
+                        if (patient.WT != listPatient[idx + 1].WT):
+                            indexxSensor = valid_id_Mimic.index(i)
+                            tableFreq[indexxSensor][0] += 1
+                        if (patient.LDL != listPatient[idx + 1].LDL):
+                            indexxSensor = valid_id_Mimic.index(i)
+                            tableFreq[indexxSensor][1] += 1
+                        if (patient.HDL != listPatient[idx + 1].HDL):
+                            indexxSensor = valid_id_Mimic.index(i)
+                            tableFreq[indexxSensor][2] += 1
+                        if (patient.HR != listPatient[idx + 1].HR):
+                            indexxSensor = valid_id_Mimic.index(i)
+                            tableFreq[indexxSensor][3] += 1
+                        if (patient.DBP != listPatient[idx + 1].DBP):
+                            indexxSensor = valid_id_Mimic.index(i)
+                            tableFreq[indexxSensor][4] += 1
+                        if (patient.SBP != listPatient[idx + 1].SBP):
+                            indexxSensor = valid_id_Mimic.index(i)
+                            tableFreq[indexxSensor][5] += 1
+                        if (patient.CVP != listPatient[idx + 1].CVP):
+                            indexxSensor = valid_id_Mimic.index(i)
+                            tableFreq[indexxSensor][6] += 1
+                        if (patient.RR != listPatient[idx + 1].RR):
+                            indexxSensor = valid_id_Mimic.index(i)
+                            tableFreq[indexxSensor][7] += 1
+                        if (patient.SpO2 != listPatient[idx + 1].SpO2):
+                            indexxSensor = valid_id_Mimic.index(i)
+                            tableFreq[indexxSensor][8] += 1
+                        if (patient.TMP != listPatient[idx + 1].TMP):
+                            indexxSensor = valid_id_Mimic.index(i)
+                            tableFreq[indexxSensor][9] += 1
+                        if (patient.ABE != listPatient[idx + 1].ABE):
+                            indexxSensor = valid_id_Mimic.index(i)
+                            tableFreq[indexxSensor][10] += 1
+                        if (patient.ACO2 != listPatient[idx + 1].ACO2):
+                            indexxSensor = valid_id_Mimic.index(i)
+                            tableFreq[indexxSensor][11] += 1
+                        if (patient.APH != listPatient[idx + 1].APH):
+                            indexxSensor = valid_id_Mimic.index(i)
+                            tableFreq[indexxSensor][12] += 1
+                        if (patient.Hb != listPatient[idx + 1].Hb):
+                            indexxSensor = valid_id_Mimic.index(i)
+                            tableFreq[indexxSensor][13] += 1
+                        if (patient.RBC != listPatient[idx + 1].RBC):
+                            indexxSensor = valid_id_Mimic.index(i)
+                            tableFreq[indexxSensor][14] += 1
+                        if (patient.RBCF != listPatient[idx + 1].RBCF):
+                            indexxSensor = valid_id_Mimic.index(i)
+                            tableFreq[indexxSensor][15] += 1
+                        if (patient.WBC != listPatient[idx + 1].WBC):
+                            indexxSensor = valid_id_Mimic.index(i)
+                            tableFreq[indexxSensor][16] += 1
+                        if (patient.MONO != listPatient[idx + 1].MONO):
+                            indexxSensor = valid_id_Mimic.index(i)
+                            tableFreq[indexxSensor][17] += 1
+                        if (patient.EOS != listPatient[idx + 1].EOS):
+                            indexxSensor = valid_id_Mimic.index(i)
+                            tableFreq[indexxSensor][18] += 1
+                        if (patient.LY != listPatient[idx + 1].LY):
+                            indexxSensor = valid_id_Mimic.index(i)
+                            tableFreq[indexxSensor][19] += 1
+                        if (patient.RDW != listPatient[idx + 1].RDW):
+                            indexxSensor = valid_id_Mimic.index(i)
+                            tableFreq[indexxSensor][20] += 1
+                        if (patient.TC != listPatient[idx + 1].TC):
+                            indexxSensor = valid_id_Mimic.index(i)
+                            tableFreq[indexxSensor][21] += 1
 
+
+                    elif (int(patient.time) > int(end)):
+                        break
+def getAge(start,end,tableAge,dataset):
+    if(dataset == "sensor"):
+        for idx in valid_id:
+            listSensor = dicts[idx]
+            count = 0
+            flag = 0
+            tempSensor = initSensor
+            for i in range(len(listSensor)-1,-1,-1):
+                if (int(listSensor[i].time) <= int(end) and int(listSensor[i].time) >= int(start)):
+                    indexxSensor = valid_id.index(idx)
+                    tableAge[indexxSensor][0] = float(listSensor[i].temperature)
+                    tableAge[indexxSensor][1] = float(listSensor[i].humidity)
+                    tableAge[indexxSensor][2] = float(listSensor[i].airPressure)
+                    tableAge[indexxSensor][3] = float(listSensor[i].voltage)
+                    break
+    elif(dataset == "medical"):
+        print("medical69")
+        for idx in valid_id_Mimic:
+            listPatient = dictsPatient[idx]
+            for i in range(len(listPatient)-1,-1,-1):
+                if (int(listPatient[i].time) <= int(end) and int(listPatient[i].time) >= int(start)):
+                    indexxSensor = valid_id_Mimic.index(idx)
+                    tableAge[indexxSensor][0] = float(listPatient[i].WT)
+                    tableAge[indexxSensor][1] = float(listPatient[i].LDL)
+                    tableAge[indexxSensor][2] = float(listPatient[i].HDL)
+                    tableAge[indexxSensor][3] = float(listPatient[i].HR)
+                    tableAge[indexxSensor][4] = float(listPatient[i].DBP)
+                    tableAge[indexxSensor][5] = float(listPatient[i].SBP)
+                    tableAge[indexxSensor][6] = float(listPatient[i].CVP)
+                    tableAge[indexxSensor][7] = float(listPatient[i].RR)
+                    tableAge[indexxSensor][8] = float(listPatient[i].SpO2)
+                    tableAge[indexxSensor][9] = float(listPatient[i].TMP)
+                    tableAge[indexxSensor][10] = float(listPatient[i].ABE)
+                    tableAge[indexxSensor][11] = float(listPatient[i].ACO2)
+                    tableAge[indexxSensor][12] = float(listPatient[i].APH)
+                    tableAge[indexxSensor][13] = float(listPatient[i].Hb)
+                    tableAge[indexxSensor][14] = float(listPatient[i].RBC)
+                    tableAge[indexxSensor][15] = float(listPatient[i].RBCF)
+                    tableAge[indexxSensor][16] = float(listPatient[i].WBC)
+                    tableAge[indexxSensor][17] = float(listPatient[i].MONO)
+                    tableAge[indexxSensor][18] = float(listPatient[i].EOS)
+                    tableAge[indexxSensor][19] = float(listPatient[i].LY)
+                    tableAge[indexxSensor][20] = float(listPatient[i].RDW)
+                    tableAge[indexxSensor][21] = float(listPatient[i].TC)
+
+                    break
 
 def initDictDuration(start, end, sensorID, prop):
     dictsDuration = {
@@ -264,6 +446,7 @@ def createHeatMapFregColumn(tableFreq):
     # 0.9 i 0.4
     # [0.9, i, 0.2]
     # ([0.3, i, 0.4])
+
     tableHeatMap = [[HeatMap(123, 'asd',False) for j in range(numProperty)] for i in range(len(valid_id))]
     dataFrame = pd.DataFrame()
     for i in range(len(tableFreq[0])):
@@ -341,8 +524,10 @@ def findAllValueAllSensor(arrayCells,start,end):
     return array
 
 hashTable()
+hashTableMimic()
 removeDefaultValue()
 readfile()
+readfileMimic()
 dictsDuration = initDictDurationAge("1522932390","1522987200","A434F11F1B05","temperature")
 temp = dictsDuration["16.6"]
 
@@ -352,28 +537,50 @@ CORS(app)
 # http://127.0.0.1:5000/frequency?start=1&end=2
 @app.route('/frequency')
 def frequency():
-    tableFreq = np.zeros((len(valid_id), numProperty))
-    start = request.args.get('start', None)
-    end = request.args.get('end', None)
-    getFreq(start,end,tableFreq)
-    print(type(tableFreq))
-    tableHeatMap = createHeatMapFregColumn(tableFreq)
-    print(type(tableHeatMap))
-    return json.dumps(tableHeatMap.tolist(), cls=CustomEncoder)
+    dataset = request.args.get('dataset', None)
+    if dataset == "sensor":
+        tableFreq = np.zeros((len(valid_id), numProperty))
+        start = request.args.get('start', None)
+        end = request.args.get('end', None)
+        getFreq(start,end,tableFreq,dataset)
+        print(type(tableFreq))
+        tableHeatMap = createHeatMapFregColumn(tableFreq)
+        print(type(tableHeatMap))
+        return json.dumps(tableHeatMap.tolist(), cls=CustomEncoder)
+    elif dataset == "medical":
+        numcolMimic = 22
+        tableFreqMimic = np.zeros((len(valid_id_Mimic), numcolMimic))
+        start = request.args.get('start', None)
+        end = request.args.get('end', None)
+        getFreq(start, end, tableFreqMimic,dataset)
+        tableHeatMap = createHeatMapFregColumn(tableFreqMimic)
+        return json.dumps(tableHeatMap.tolist(), cls=CustomEncoder)
 @app.route('/age')
 def age():
-    tableAge = [[0.0 for j in range(numProperty)] for i in range(len(valid_id))]
-    # tableHeatMap = [[HeatMap(123, 'asd', False) for j in range(numProperty)] for i in range(len(valid_id))]
-    # tableAge.astype(float)
-    start = request.args.get('start', None)
-    end = request.args.get('end', None)
-    getAge(start,end,tableAge)
-    print(type(tableAge))
-    tableHeatMap = createHeatMapFregColumn(np.asarray(tableAge))
-    print(tableHeatMap)
-    # tableHeatMap = createHeatMapFreg(tableAge)
+    dataset = request.args.get('dataset', None)
+    if dataset == "sensor":
+        tableAge = [[0.0 for j in range(numProperty)] for i in range(len(valid_id))]
+        # tableHeatMap = [[HeatMap(123, 'asd', False) for j in range(numProperty)] for i in range(len(valid_id))]
+        # tableAge.astype(float)
+        start = request.args.get('start', None)
+        end = request.args.get('end', None)
+        getAge(start,end,tableAge,dataset)
+        print(type(tableAge))
+        tableHeatMap = createHeatMapFregColumn(np.asarray(tableAge))
+        print(tableHeatMap)
+        # tableHeatMap = createHeatMapFreg(tableAge)
 
-    return json.dumps(tableHeatMap.tolist(), cls=CustomEncoder)
+        return json.dumps(tableHeatMap.tolist(), cls=CustomEncoder)
+    elif dataset == "medical":
+        numcolMimic = 22
+        tableAgeMimic = [[0.0 for j in range(numcolMimic)] for i in range(len(valid_id_Mimic))]
+        start = request.args.get('start', None)
+        end = request.args.get('end', None)
+        getAge(start, end, tableAgeMimic,dataset)
+        tableHeatMap = createHeatMapFregColumn(np.asarray(tableAgeMimic))
+        print('tableHeatMap')
+        print(tableHeatMap)
+        return json.dumps(tableHeatMap.tolist(), cls=CustomEncoder)
 
 @app.route('/duration')
 def duration():
