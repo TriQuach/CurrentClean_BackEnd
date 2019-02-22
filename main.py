@@ -341,6 +341,23 @@ def initDictDuration(start, end, sensorID, prop):
 
     return  dictsDuration
 
+def initDictDurationMimic(start, end, mimicID, prop):
+    dictsDurationMimic = {
+        '999': [initPatient]
+    }
+    del dictsDurationMimic['999']
+    listPatient = dictsPatient[mimicID]
+    for patient in listPatient:
+        if (int(patient.time) > int(start) and int(patient.time) < int(end)):
+            key = getattr(patient,prop)
+            isExist = key in dictsDurationMimic.keys()
+            if (isExist == False):
+                dictsDurationMimic[key] = [patient]
+            else:
+                dictsDurationMimic[key].append(patient)
+
+    return dictsDurationMimic
+
 def initDictDurationAge(start, end, sensorID, prop):
     dictsDuration = {
         '1': [initSensor]
@@ -361,6 +378,26 @@ def initDictDurationAge(start, end, sensorID, prop):
                     dictsDuration[key].append(listSensor[i])
                     dictsDuration[key].append(listSensor[i+1])
     return  dictsDuration
+def initDictDurationAgeMimic(start, end, sensorID, prop):
+    dictsDuration = {
+        '999': [initPatient]
+    }
+    del dictsDuration['999']
+    listPatient = dictsPatient[sensorID]
+    for i in range(len(listPatient)-1):
+        if (int(listPatient[i].time) >= int(start) and int(listPatient[i].time) <= int(end)):
+            key = getattr(listPatient[i],prop)
+            key_next = getattr(listPatient[i+1],prop)
+            isExist = key in dictsDuration.keys()
+            if (isExist == False):
+                dictsDuration[key] = [listPatient[i]]
+                if (key != key_next):
+                    dictsDuration[key].append(listPatient[i + 1])
+            else:
+                if (key != key_next):
+                    dictsDuration[key].append(listPatient[i])
+                    dictsDuration[key].append(listPatient[i+1])
+    return  dictsDuration
 def getDuration(start, dictsDuration):
     tableDuration = np.zeros((len(dictsDuration.keys()), 2))
     for idx, key in enumerate(dictsDuration.keys()):
@@ -379,6 +416,24 @@ def getDuration(start, dictsDuration):
         tableDuration = sklearn.utils.shuffle(tableDuration)
 
     return tableDuration
+def getDurationMimic(start, dictsDurationMimic):
+    tableDurationMimic = np.zeros((len(dictsDurationMimic.keys()), 2))
+    for idx, key in enumerate(dictsDurationMimic.keys()):
+        duration = 0
+
+        listPatients = dictsDurationMimic[key]
+        freq = len(listPatients)
+        tableDurationMimic[idx][0] = (key)
+        tableDurationMimic[idx][1] = (freq)
+    if (len(tableDurationMimic) > 10):
+        data = pd.DataFrame(tableDurationMimic)
+
+        test = data.sort_values([1], ascending=[False])
+
+        tableDurationMimic = test.head(10).values
+        tableDurationMimic = sklearn.utils.shuffle(tableDurationMimic)
+
+    return tableDurationMimic
 
 def getDurationAge(start, dictsDurationAge):
     tableDuration = np.zeros((len(dictsDurationAge.keys()), 2))
@@ -387,6 +442,31 @@ def getDurationAge(start, dictsDurationAge):
         duration = 0
         for i in range(0,len(listSensors)-1,2):
             duration += int(listSensors[i+1].time) - int(listSensors[i].time)
+        tableDuration[idx][0] = (key)
+        tableDuration[idx][1] = (duration)
+    # for idx, key in enumerate(dictsDurationAge.keys()):
+    #     duration = 0
+    #
+    #     listSensors = dictsDuration[key]
+    #     freq = len(listSensors)
+    #     tableDuration[idx][0] = (key)
+    #     tableDuration[idx][1] = (freq)
+    # if (len(tableDuration) > 10):
+    #     data = pd.DataFrame(tableDuration)
+    #
+    #     test = data.sort_values([1], ascending=[False])
+    #
+    #     tableDuration = test.head(10).values
+    #     tableDuration = sklearn.utils.shuffle(tableDuration)
+
+    return tableDuration
+def getDurationAgeMimic(start, dictsDurationAge):
+    tableDuration = np.zeros((len(dictsDurationAge.keys()), 2))
+    for idx, key in enumerate(dictsDurationAge.keys()):
+        listPatients = dictsDurationAge[key]
+        duration = 0
+        for i in range(0,len(listPatients)-1,2):
+            duration += int(listPatients[i+1].time) - int(listPatients[i].time)
         tableDuration[idx][0] = (key)
         tableDuration[idx][1] = (duration)
     # for idx, key in enumerate(dictsDurationAge.keys()):
@@ -515,11 +595,35 @@ def findValueForOneAttributeOfCell(sensorID,prop,start,end):
             sub[key] = float(sub[key])
     return  array
 
+def findValueForOneAttributeOfCellMimic(patientID,prop,start,end):
+    listPatient = dictsPatient[patientID]
+    array = []
+    step = 0
+    for idx,patient in enumerate(listPatient):
+        if (int(patient.time) > int(start) and int(patient.time) < int(end)):
+            time = patient.time
+            value = getattr(patient, prop)
+            temp={'x':step,'y':value}
+            array.append(temp)
+            step += 2
+    for sub in array:
+        for key in sub:
+            sub[key] = float(sub[key])
+    return  array
+
 def findAllValueAllSensor(arrayCells,start,end):
     array = []
     for obj in arrayCells:
         sensorID = list(obj.keys())[0]
         temp = findValueForOneAttributeOfCell(sensorID,obj[sensorID],start,end)
+        array.append(temp)
+    return array
+
+def findAllValueAllPatient(arrayCells,start,end):
+    array = []
+    for obj in arrayCells:
+        patientID = list(obj.keys())[0]
+        temp = findValueForOneAttributeOfCellMimic(patientID,obj[patientID],start,end)
         array.append(temp)
     return array
 
@@ -584,39 +688,71 @@ def age():
 
 @app.route('/duration')
 def duration():
+    dataset = request.args.get('dataset', None)
+    if (dataset == "sensor"):
+        start = request.args.get('start', None)
+        end = request.args.get('end', None)
+        sensorID = request.args.get('sensorID', None)
+        prop = request.args.get('prop', None)
+        dictsDuration = initDictDuration(start,end,sensorID,prop)
 
-    start = request.args.get('start', None)
-    end = request.args.get('end', None)
-    sensorID = request.args.get('sensorID', None)
-    prop = request.args.get('prop', None)
-    dictsDuration = initDictDuration(start,end,sensorID,prop)
-
-    tableDuration = getDuration(start,dictsDuration)
-    print("haha")
-    print(tableDuration)
-    return jsonify (
-        tableDuration.tolist()
-    )
+        tableDuration = getDuration(start,dictsDuration)
+        print("haha")
+        print(tableDuration)
+        return jsonify (
+            tableDuration.tolist()
+        )
+    elif (dataset == "medical"):
+        start = request.args.get('start', None)
+        end = request.args.get('end', None)
+        sensorID = request.args.get('sensorID', None)
+        prop = request.args.get('prop', None)
+        dictsDurationMimic = initDictDurationMimic(start, end, sensorID, prop)
+        tableDurationMimic = getDurationMimic(start, dictsDurationMimic)
+        print("haha")
+        print(tableDurationMimic)
+        return jsonify(
+            tableDurationMimic.tolist()
+        )
 
 @app.route('/comparecells', methods= ['POST'])
 def comparecells():
-    data = request.get_json()
-    print(data["start"])
+    dataset = request.args.get('dataset', None)
+    if (dataset == "sensor"):
+        data = request.get_json()
+        print(data["start"])
 
-    res = findAllValueAllSensor(data["arrayCells"],data["start"],data["end"])
-    return(jsonify(res))
+        res = findAllValueAllSensor(data["arrayCells"],data["start"],data["end"])
+        return(jsonify(res))
+    elif (dataset == "medical"):
+        data = request.get_json()
+        res = findAllValueAllPatient(data["arrayCells"], data["start"], data["end"])
+        return (jsonify(res))
+        print(data)
 
 @app.route('/existedtime')
 def existedtime():
+    dataset = request.args.get('dataset', None)
+    if (dataset == "sensor"):
+        start = request.args.get('start', None)
+        end = request.args.get('end', None)
+        sensorID = request.args.get('sensorID', None)
+        prop = request.args.get('prop', None)
+        dictsDurationAge = initDictDurationAge(start,end,sensorID,prop)
+        print(dictsDurationAge)
+        tableDurationAge = getDurationAge(start,dictsDurationAge)
+        print(tableDurationAge)
+        return jsonify (
+            tableDurationAge.tolist()
+        )
+    elif (dataset == "medical"):
+        start = request.args.get('start', None)
+        end = request.args.get('end', None)
+        sensorID = request.args.get('sensorID', None)
+        prop = request.args.get('prop', None)
+        dictsDurationAge = initDictDurationAgeMimic(start, end, sensorID, prop)
+        tableDurationAge = getDurationAgeMimic(start, dictsDurationAge)
+        return jsonify(
+            tableDurationAge.tolist()
 
-    start = request.args.get('start', None)
-    end = request.args.get('end', None)
-    sensorID = request.args.get('sensorID', None)
-    prop = request.args.get('prop', None)
-    dictsDurationAge = initDictDurationAge(start,end,sensorID,prop)
-    print(dictsDurationAge)
-    tableDurationAge = getDurationAge(start,dictsDurationAge)
-    print(tableDurationAge)
-    return jsonify (
-        tableDurationAge.tolist()
-    )
+        )
