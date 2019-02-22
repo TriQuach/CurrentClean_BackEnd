@@ -407,14 +407,17 @@ def getDuration(start, dictsDuration):
         freq = len(listSensors)
         tableDuration[idx][0] = (key)
         tableDuration[idx][1] = (freq)
-    if (len(tableDuration) > 10):
-        data = pd.DataFrame(tableDuration)
+    data = pd.DataFrame(tableDuration)
 
-        test = data.sort_values([1], ascending=[False])
+    test = data.sort_values([1], ascending=[True])
+    if (len(tableDuration) > 10):
+
 
         tableDuration = test.head(10).values
-        tableDuration = sklearn.utils.shuffle(tableDuration)
-
+        # tableDuration = sklearn.utils.shuffle(tableDuration)
+    else:
+        tableDuration = test
+    tableDuration = np.asarray(tableDuration)
     return tableDuration
 def getDurationMimic(start, dictsDurationMimic):
     tableDurationMimic = np.zeros((len(dictsDurationMimic.keys()), 2))
@@ -425,14 +428,17 @@ def getDurationMimic(start, dictsDurationMimic):
         freq = len(listPatients)
         tableDurationMimic[idx][0] = (key)
         tableDurationMimic[idx][1] = (freq)
-    if (len(tableDurationMimic) > 10):
-        data = pd.DataFrame(tableDurationMimic)
+    data = pd.DataFrame(tableDurationMimic)
 
-        test = data.sort_values([1], ascending=[False])
+    test = data.sort_values([1], ascending=[True])
+    if (len(tableDurationMimic) > 10):
+
 
         tableDurationMimic = test.head(10).values
-        tableDurationMimic = sklearn.utils.shuffle(tableDurationMimic)
-
+        # tableDurationMimic = sklearn.utils.shuffle(tableDurationMimic)
+    else:
+        tableDurationMimic = test
+    tableDurationMimic = np.asarray(tableDurationMimic)
     return tableDurationMimic
 
 def getDurationAge(start, dictsDurationAge):
@@ -458,7 +464,10 @@ def getDurationAge(start, dictsDurationAge):
     #
     #     tableDuration = test.head(10).values
     #     tableDuration = sklearn.utils.shuffle(tableDuration)
+    data = pd.DataFrame(tableDuration)
 
+    tableDuration = data.sort_values([1], ascending=[True])
+    tableDuration = np.asarray(tableDuration)
     return tableDuration
 def getDurationAgeMimic(start, dictsDurationAge):
     tableDuration = np.zeros((len(dictsDurationAge.keys()), 2))
@@ -483,7 +492,10 @@ def getDurationAgeMimic(start, dictsDurationAge):
     #
     #     tableDuration = test.head(10).values
     #     tableDuration = sklearn.utils.shuffle(tableDuration)
+    data = pd.DataFrame(tableDuration)
 
+    tableDuration = data.sort_values([1], ascending=[True])
+    tableDuration = np.asarray(tableDuration)
     return tableDuration
 
 def testPandas():
