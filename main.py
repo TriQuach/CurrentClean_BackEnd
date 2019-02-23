@@ -407,13 +407,20 @@ def getDuration(start, dictsDuration):
         freq = len(listSensors)
         tableDuration[idx][0] = (key)
         tableDuration[idx][1] = (freq)
-    data = pd.DataFrame(tableDuration)
 
-    test = data.sort_values([1], ascending=[True])
+    print("tableDuration")
+    print(tableDuration)
+    data = pd.DataFrame(tableDuration)
+    print(data)
+
+    test = data.sort_values([1], ascending=[False])
     if (len(tableDuration) > 10):
 
 
-        tableDuration = test.head(10).values
+        test = test.head(10).values
+        test = pd.DataFrame(test)
+        test = test.sort_values([1], ascending=[True])
+        tableDuration = test
         # tableDuration = sklearn.utils.shuffle(tableDuration)
     else:
         tableDuration = test
@@ -430,13 +437,17 @@ def getDurationMimic(start, dictsDurationMimic):
         tableDurationMimic[idx][1] = (freq)
     data = pd.DataFrame(tableDurationMimic)
 
-    test = data.sort_values([1], ascending=[True])
+    test = data.sort_values([1], ascending=[False])
     if (len(tableDurationMimic) > 10):
 
-
-        tableDurationMimic = test.head(10).values
+        test = test.head(10).values
+        test = pd.DataFrame(test)
+        test = test.sort_values([1], ascending=[True])
+        tableDurationMimic = test
         # tableDurationMimic = sklearn.utils.shuffle(tableDurationMimic)
     else:
+        test = pd.DataFrame(test)
+        test = test.sort_values([1], ascending=[True])
         tableDurationMimic = test
     tableDurationMimic = np.asarray(tableDurationMimic)
     return tableDurationMimic
@@ -522,7 +533,7 @@ def createHeatMapFreg(tableFreq):
     norm = [lower + (upper - lower) * x for x in temp_norm]
     arrayHex = []
     for i in norm:
-        hex = matplotlib.colors.to_hex([ i,i, 0.2])
+        hex = matplotlib.colors.to_hex([ 1,i, 1])
         arrayHex.append(hex)
 
     index = 0
@@ -543,15 +554,15 @@ def createHeatMapFregColumn(tableFreq):
     dataFrame = pd.DataFrame()
     for i in range(len(tableFreq[0])):
         col = tableFreq[:,i]
-        temp_norm = [1 - float(j) / max(col) for j in col]
+        temp_norm = [float(j) / max(col) for j in col]
 
-        lower, upper = 0.45, 1.0
+        lower, upper = 0.45, 0.9
         norm = [lower + (upper - lower) * x for x in temp_norm]
         arrayHeat = []
 
         for idx, normValue in enumerate(norm):
 
-            hex = matplotlib.colors.to_hex([normValue, normValue, 0.2])
+            hex = matplotlib.colors.to_hex([1, normValue, 1])
             tempHeat = HeatMap(tableFreq[idx][i],hex, False)
 
             arrayHeat.append(tempHeat)
