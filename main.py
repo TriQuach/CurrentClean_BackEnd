@@ -20,10 +20,8 @@ valid_id = ['A434F11F1B05', 'A434F11EEE06', 'A434F11F1684', 'A434F11F1E86', 'A43
 				'A434F1204005', 'A434F11F1F03', 'A434F11F3902', 'A434F11EF68F', 'A434F11F1106', 'A434F11F1782',
 				'A434F11F1607', 'A434F11F4287', 'A434F11F1F02', 'A434F11F1406', 'A434F11F0E85', 'A434F11EEF8C',
 				'A434F11F1E09', 'A434F11F0E03', 'A434F11F1483', 'A434F11F1F85']
-valid_id_Mimic = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15',
-                  '16','17','18','19','20','21','22','23','24','25','26','27','28','29','30',
-                  '31','32','33','34','35','36','37','38','39','40','41','42','43','44','45',
-                  '46','47','48','49','50']
+# valid_id_Mimic = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '50', '51', '52', '53', '54', '55', '56', '57', '58', '59', '60', '61', '62', '63', '64', '65', '66', '67', '68', '69', '70', '71', '72', '73', '74', '75', '76', '77', '78', '79', '80', '81', '82', '83', '84', '85', '86', '87', '88', '89', '90', '91', '92', '93', '94', '95', '96', '97', '98', '99', '100']
+valid_id_Mimic = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '50']
 numProperty = 4 #Temperature;Humidity;AirPressure;Voltage
 
 
@@ -130,7 +128,7 @@ def readfile():
         sensor = Sensor(word[0],word[1],word[2],word[3],word[4],word[5])
         dicts[sensor.id_sensor].append(sensor)
 def readfileMimic():
-    f = open("Mimic.txt", "r")
+    f = open("Mimic50.txt", "r")
     for line in f:
         word = line.split(',')
         word[2] = word[2].split(':')[1]
@@ -208,6 +206,7 @@ def getFreq(start,end,tableFreq,dataset):
                 if(idx < len(listPatient)-1):
                     if (int(patient.time) >= int(start) and int(patient.time) <= int(end)):
                         if (patient.WT != listPatient[idx + 1].WT):
+                            print("^&^&")
                             indexxSensor = valid_id_Mimic.index(i)
                             tableFreq[indexxSensor][0] += 1
                         if (patient.LDL != listPatient[idx + 1].LDL):
@@ -277,6 +276,53 @@ def getFreq(start,end,tableFreq,dataset):
 
                     elif (int(patient.time) > int(end)):
                         break
+
+def freq(list):
+    sum = 0
+    for i in range(len(list)):
+        sum += list[i][1]
+    return sum
+def getFreqNewVersion(start,end,tableFreq,dataset):
+    if (dataset == "sensor"):
+        for i in valid_id:
+            print("dictFreq")
+            dictFreqTemp = initDictDuration(start,end,i,"temperature")
+            tableTemp = getDuration(start,dictFreqTemp)
+            freqTemp = freq(tableTemp)
+
+            dictFreqHum = initDictDuration(start, end, i, "humidity")
+            tableHum = getDuration(start, dictFreqHum)
+            freqHum = freq(tableHum)
+
+            dictFreqAir = initDictDuration(start, end, i, "airPressure")
+            tableAir = getDuration(start, dictFreqAir)
+            freqAir = freq(tableAir)
+
+            dictFreqVol = initDictDuration(start, end, i, "voltage")
+            tableVol = getDuration(start, dictFreqVol)
+            freqVol = freq(tableVol)
+
+            indexxSensor = valid_id.index(i)
+            tableFreq[indexxSensor][0] = freqTemp
+            tableFreq[indexxSensor][1] = freqHum
+            tableFreq[indexxSensor][2] = freqAir
+            tableFreq[indexxSensor][3] = freqVol
+
+            # sumTemperature = freg(dictFreq)
+            # dictFreqHum = initDictDuration(start, end, i, "humidity")
+            # sumHum = freg(dictFreqHum)
+            # dictFreqAir = initDictDuration(start, end, i, "airPressure")
+            # sumAir = freg(dictFreqAir)
+            # dictFreqVol = initDictDuration(start, end, i, "voltage")
+            # sumVol = freg(dictFreqVol)
+            # indexxSensor = valid_id.index(i)
+            # tableFreq[indexxSensor][0] = sumTemperature
+            # tableFreq[indexxSensor][1] = sumHum
+            # tableFreq[indexxSensor][2] = sumAir
+            # tableFreq[indexxSensor][3] = sumVol
+
+
+
 def getAge(start,end,tableAge,dataset):
     if(dataset == "sensor"):
         for idx in valid_id:
@@ -329,17 +375,26 @@ def initDictDuration(start, end, sensorID, prop):
         '1': [initSensor]
     }
     del dictsDuration['1']
+    isFirstTime = False
     listSensor = dicts[sensorID]
-    for sensor in listSensor:
-        if (int(sensor.time) > int(start) and int(sensor.time) < int(end)):
-            key = getattr(sensor,prop)
+    count = 0
+    for i in range(len(listSensor)-1):
+        if (int(listSensor[i].time) > int(start) and int(listSensor[i].time) < int(end)):
+            count += 1
+            key = getattr(listSensor[i],prop)
+            key_next = getattr(listSensor[i+1],prop)
             isExist = key in dictsDuration.keys()
             if (isExist == False):
-                dictsDuration[key] = [sensor]
+                dictsDuration[key] = [listSensor[i]]
             else:
-                dictsDuration[key].append(sensor)
-
+                if (key != key_next):
+                    dictsDuration[key].append(listSensor[i])
+                    flag = False
+    print("dictsDuration")
+    # print(dictsDuration)
     return  dictsDuration
+
+
 
 def initDictDurationMimic(start, end, mimicID, prop):
     dictsDurationMimic = {
@@ -398,6 +453,10 @@ def initDictDurationAgeMimic(start, end, sensorID, prop):
                     dictsDuration[key].append(listPatient[i])
                     dictsDuration[key].append(listPatient[i+1])
     return  dictsDuration
+
+
+
+
 def getDuration(start, dictsDuration):
     tableDuration = np.zeros((len(dictsDuration.keys()), 2))
     for idx, key in enumerate(dictsDuration.keys()):
@@ -423,6 +482,8 @@ def getDuration(start, dictsDuration):
         tableDuration = test
         # tableDuration = sklearn.utils.shuffle(tableDuration)
     else:
+        test = pd.DataFrame(test)
+        test = test.sort_values([1], ascending=[True])
         tableDuration = test
     tableDuration = np.asarray(tableDuration)
     return tableDuration
@@ -554,14 +615,15 @@ def createHeatMapFregColumn(tableFreq):
     dataFrame = pd.DataFrame()
     for i in range(len(tableFreq[0])):
         col = tableFreq[:,i]
+        print(col)
         temp_norm = [float(j) / max(col) for j in col]
-
+        print(temp_norm)
         lower, upper = 0.45, 0.9
         norm = [lower + (upper - lower) * x for x in temp_norm]
         arrayHeat = []
 
         for idx, normValue in enumerate(norm):
-
+            print(normValue)
             hex = matplotlib.colors.to_hex([1, normValue, 1])
             tempHeat = HeatMap(tableFreq[idx][i],hex, False)
 
@@ -655,9 +717,7 @@ hashTableMimic()
 removeDefaultValue()
 readfile()
 readfileMimic()
-dictsDuration = initDictDurationAge("1522932390","1522987200","A434F11F1B05","temperature")
-temp = dictsDuration["16.6"]
-
+print([str(i) for i in range(1,101)])
 
 app = Flask(__name__)
 CORS(app)
@@ -670,7 +730,6 @@ def frequency():
         start = request.args.get('start', None)
         end = request.args.get('end', None)
         getFreq(start,end,tableFreq,dataset)
-        print(type(tableFreq))
         tableHeatMap = createHeatMapFregColumn(tableFreq)
         print(type(tableHeatMap))
         return json.dumps(tableHeatMap.tolist(), cls=CustomEncoder)
@@ -680,6 +739,9 @@ def frequency():
         start = request.args.get('start', None)
         end = request.args.get('end', None)
         getFreq(start, end, tableFreqMimic,dataset)
+        print("**********************")
+        print((tableFreqMimic))
+
         tableHeatMap = createHeatMapFregColumn(tableFreqMimic)
         return json.dumps(tableHeatMap.tolist(), cls=CustomEncoder)
 @app.route('/age')
