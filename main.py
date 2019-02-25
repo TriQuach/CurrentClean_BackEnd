@@ -20,8 +20,8 @@ valid_id = ['A434F11F1B05', 'A434F11EEE06', 'A434F11F1684', 'A434F11F1E86', 'A43
 				'A434F1204005', 'A434F11F1F03', 'A434F11F3902', 'A434F11EF68F', 'A434F11F1106', 'A434F11F1782',
 				'A434F11F1607', 'A434F11F4287', 'A434F11F1F02', 'A434F11F1406', 'A434F11F0E85', 'A434F11EEF8C',
 				'A434F11F1E09', 'A434F11F0E03', 'A434F11F1483', 'A434F11F1F85']
-# valid_id_Mimic = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '50', '51', '52', '53', '54', '55', '56', '57', '58', '59', '60', '61', '62', '63', '64', '65', '66', '67', '68', '69', '70', '71', '72', '73', '74', '75', '76', '77', '78', '79', '80', '81', '82', '83', '84', '85', '86', '87', '88', '89', '90', '91', '92', '93', '94', '95', '96', '97', '98', '99', '100']
-valid_id_Mimic = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '50']
+valid_id_Mimic = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '50', '51', '52', '53', '54', '55', '56', '57', '58', '59', '60', '61', '62', '63', '64', '65', '66', '67', '68', '69', '70', '71', '72', '73', '74', '75', '76', '77', '78', '79', '80', '81', '82', '83', '84', '85', '86', '87', '88', '89', '90', '91', '92', '93', '94', '95', '96', '97', '98', '99', '100']
+# valid_id_Mimic = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '50']
 numProperty = 4 #Temperature;Humidity;AirPressure;Voltage
 
 
@@ -128,7 +128,7 @@ def readfile():
         sensor = Sensor(word[0],word[1],word[2],word[3],word[4],word[5])
         dicts[sensor.id_sensor].append(sensor)
 def readfileMimic():
-    f = open("Mimic50.txt", "r")
+    f = open("Mimic100_3.txt", "r")
     for line in f:
         word = line.split(',')
         word[2] = word[2].split(':')[1]
@@ -206,7 +206,6 @@ def getFreq(start,end,tableFreq,dataset):
                 if(idx < len(listPatient)-1):
                     if (int(patient.time) >= int(start) and int(patient.time) <= int(end)):
                         if (patient.WT != listPatient[idx + 1].WT):
-                            print("^&^&")
                             indexxSensor = valid_id_Mimic.index(i)
                             tableFreq[indexxSensor][0] += 1
                         if (patient.LDL != listPatient[idx + 1].LDL):
@@ -285,7 +284,6 @@ def freq(list):
 def getFreqNewVersion(start,end,tableFreq,dataset):
     if (dataset == "sensor"):
         for i in valid_id:
-            print("dictFreq")
             dictFreqTemp = initDictDuration(start,end,i,"temperature")
             tableTemp = getDuration(start,dictFreqTemp)
             freqTemp = freq(tableTemp)
@@ -402,14 +400,16 @@ def initDictDurationMimic(start, end, mimicID, prop):
     }
     del dictsDurationMimic['999']
     listPatient = dictsPatient[mimicID]
-    for patient in listPatient:
-        if (int(patient.time) > int(start) and int(patient.time) < int(end)):
-            key = getattr(patient,prop)
+    for i in range(len(listPatient)):
+        if (int(listPatient[i].time) > int(start) and int(listPatient[i].time) < int(end)):
+            key = getattr(listPatient[i],prop)
+            key_next = getattr(listPatient[i + 1], prop)
             isExist = key in dictsDurationMimic.keys()
             if (isExist == False):
-                dictsDurationMimic[key] = [patient]
+                dictsDurationMimic[key] = [listPatient[i]]
             else:
-                dictsDurationMimic[key].append(patient)
+                if (key != key_next):
+                    dictsDurationMimic[key].append(listPatient[i])
 
     return dictsDurationMimic
 
@@ -615,15 +615,12 @@ def createHeatMapFregColumn(tableFreq):
     dataFrame = pd.DataFrame()
     for i in range(len(tableFreq[0])):
         col = tableFreq[:,i]
-        print(col)
         temp_norm = [float(j) / max(col) for j in col]
-        print(temp_norm)
         lower, upper = 0.45, 0.9
         norm = [lower + (upper - lower) * x for x in temp_norm]
         arrayHeat = []
 
         for idx, normValue in enumerate(norm):
-            print(normValue)
             hex = matplotlib.colors.to_hex([1, normValue, 1])
             tempHeat = HeatMap(tableFreq[idx][i],hex, False)
 
