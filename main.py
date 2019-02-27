@@ -425,8 +425,9 @@ def initDictDurationAge(start, end, sensorID, prop):
             key_next = getattr(listSensor[i+1],prop)
             isExist = key in dictsDuration.keys()
             if (isExist == False):
-                dictsDuration[key] = [listSensor[i]]
+
                 if (key != key_next):
+                    dictsDuration[key] = [listSensor[i]]
                     dictsDuration[key].append(listSensor[i + 1])
             else:
                 if (key != key_next):
@@ -445,8 +446,9 @@ def initDictDurationAgeMimic(start, end, sensorID, prop):
             key_next = getattr(listPatient[i+1],prop)
             isExist = key in dictsDuration.keys()
             if (isExist == False):
-                dictsDuration[key] = [listPatient[i]]
+
                 if (key != key_next):
+                    dictsDuration[key] = [listPatient[i]]
                     dictsDuration[key].append(listPatient[i + 1])
             else:
                 if (key != key_next):
@@ -543,9 +545,14 @@ def getDurationAge(start, dictsDurationAge):
     return tableDuration
 def getDurationAgeMimic(start, dictsDurationAge):
     tableDuration = np.zeros((len(dictsDurationAge.keys()), 2))
+    print("--------**-----")
+    print(dictsDurationAge)
+
+
     for idx, key in enumerate(dictsDurationAge.keys()):
         listPatients = dictsDurationAge[key]
         duration = 0
+        index = 0
         for i in range(0,len(listPatients)-1,2):
             duration += int(listPatients[i+1].time) - int(listPatients[i].time)
         tableDuration[idx][0] = (key)
@@ -714,7 +721,14 @@ hashTableMimic()
 removeDefaultValue()
 readfile()
 readfileMimic()
-print([str(i) for i in range(1,101)])
+# TMP
+temp = initDictDurationAgeMimic(1466410104,1466413373,"1","TMP")
+tableDurationAge = getDurationAgeMimic(1466410104, temp)
+
+x = dictsPatient["1"]
+
+
+
 
 app = Flask(__name__)
 CORS(app)
@@ -832,7 +846,10 @@ def existedtime():
         end = request.args.get('end', None)
         sensorID = request.args.get('sensorID', None)
         prop = request.args.get('prop', None)
+
         dictsDurationAge = initDictDurationAgeMimic(start, end, sensorID, prop)
+
+
         tableDurationAge = getDurationAgeMimic(start, dictsDurationAge)
         return jsonify(
             tableDurationAge.tolist()
