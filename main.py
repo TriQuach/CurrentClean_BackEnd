@@ -8,6 +8,7 @@ from collections import defaultdict
 import sklearn.utils
 import json
 import matplotlib
+from datetime import datetime
 from flask_cors import CORS
 
 valid_id = ['A434F11F1B05', 'A434F11EEE06', 'A434F11F1684', 'A434F11F1E86', 'A434F11EF48B', 'A434F11F2003',
@@ -38,6 +39,19 @@ class Sensor:
         self.airPressure = airPressure
         self.voltage = voltage
 
+        def getAttribute(self, attr):
+            if attr == "Temperature":
+                return self.temperature
+            elif attr == "Humidity":
+                return self.humidity
+            elif attr == "AirPressure":
+                return self.airPressure
+            elif attr == "Voltage":
+                return self.voltage
+            else:
+                raise Exception("Invalid attribute")
+
+
 class Patient:
     def __init__(self, time, id_patient, WT, LDL, HDL, HR,DBP,SBP,CVP,RR,SpO2,TMP,ABE,ACO2,APH,Hb,RBC,RBCF,WBC,MONO,EOS,LY,RDW,TC):
         self.time = time
@@ -65,12 +79,61 @@ class Patient:
         self.RDW = RDW
         self.TC = TC
 
+    def getAttribute(self, attr):
+        if attr == "WT":
+            return self.WT
+        elif attr == "LDL":
+            return self.LDL
+        elif attr == "HDL":
+            return self.HDL
+        elif attr == "HR":
+            return self.HR
+        elif attr == "DBP":
+            return self.DBP
+        elif attr == "SBP":
+            return self.SBP
+        elif attr == "CVP":
+            return self.CVP
+        elif attr == "RR":
+            return self.RR
+        elif attr == "SpO2":
+            return self.SpO2
+        elif attr == "TMP":
+            return self.TMP
+        elif attr == "ABE":
+            return self.ABE
+        elif attr == "ACO2":
+            return self.ACO2
+        elif attr == "APH":
+            return self.APH
+        elif attr == "Hb":
+            return self.Hb
+        elif attr == "RBC":
+            return self.RBC
+        elif attr == "RBCF":
+            return self.RBCF
+        elif attr == "WBC":
+            return self.WBC
+        elif attr == "MONO":
+            return self.MONO
+        elif attr == "EOS":
+            return self.EOS
+        elif attr ==  "LY":
+            return self.LY
+        elif attr == "RDW":
+            return self.RDW
+        elif attr == "TC":
+            return self.TC
+        else:
+            raise Exception("Invalid attribute")
+
 
 class HeatMap:
-    def __init__(self, value, hex, isSelected):
+    def __init__(self, value, hex, isSelected,probability):
         self.value = value
         self.hex = hex
         self.isSelected = isSelected
+        self.probability = probability
 
     def toJSON(self):
         return json.dumps(self, default=lambda o: o.__dict__,
@@ -82,7 +145,8 @@ class CustomEncoder(json.JSONEncoder):
             return {
                 "value": obj.value,
                 "hex": obj.hex,
-                "isSelected": obj.isSelected
+                "isSelected": obj.isSelected,
+                "probability": obj.probability
             }
         #Let the base class handle the problem.
         return json.JSONEncoder.default(self, obj)
@@ -573,7 +637,15 @@ def getDurationAgeMimic(start, dictsDurationAge):
     #     tableDuration = sklearn.utils.shuffle(tableDuration)
     data = pd.DataFrame(tableDuration)
 
-    tableDuration = data.sort_values([1], ascending=[True])
+    # tableDuration = data.sort_values([1], ascending=[True])
+    # tableDuration = tableDuration.head(10).values
+
+    data = data.sort_values([1], ascending=[False])
+
+    data = data.head(6).values
+    data = pd.DataFrame(data)
+    data = data.sort_values([1], ascending=[True])
+    tableDuration = data
     tableDuration = np.asarray(tableDuration)
     return tableDuration
 
@@ -618,18 +690,17 @@ def createHeatMapFregColumn(tableFreq):
     # [0.9, i, 0.2]
     # ([0.3, i, 0.4])
 
-    tableHeatMap = [[HeatMap(123, 'asd',False) for j in range(numProperty)] for i in range(len(valid_id))]
+    tableHeatMap = [[HeatMap(123, 'asd',False,0.1) for j in range(numProperty)] for i in range(len(valid_id))]
     dataFrame = pd.DataFrame()
     for i in range(len(tableFreq[0])):
         col = tableFreq[:,i]
         temp_norm = [float(j) / max(col) for j in col]
-        lower, upper = 0.45, 0.9
-        norm = [lower + (upper - lower) * x for x in temp_norm]
+
         arrayHeat = []
 
-        for idx, normValue in enumerate(norm):
+        for idx, normValue in enumerate(temp_norm):
             hex = matplotlib.colors.to_hex([1, normValue, 1])
-            tempHeat = HeatMap(tableFreq[idx][i],hex, False)
+            tempHeat = HeatMap(tableFreq[idx][i],hex, False,normValue)
 
             arrayHeat.append(tempHeat)
 
@@ -660,7 +731,7 @@ def createHeatMapAge(tableAge):
         arrayHex.append(hex)
 
     index = 0
-    tableHeatMap = [[HeatMap(123,'asd',False) for j in range(numProperty)] for i in range(len(valid_id))]
+    tableHeatMap = [[HeatMap(123,'asd',False,0.1) for j in range(numProperty)] for i in range(len(valid_id))]
     for i in range(len(tableAge)):
         for j in range(len(tableAge[i])):
             temp = HeatMap(tableAge[i][j],arrayHex[index],False)
@@ -691,8 +762,9 @@ def findValueForOneAttributeOfCellMimic(patientID,prop,start,end):
     for idx,patient in enumerate(listPatient):
         if (int(patient.time) > int(start) and int(patient.time) < int(end)):
             time = patient.time
+
             value = getattr(patient, prop)
-            temp={'x':step,'y':value}
+            temp={'x':time,'y':value}
             array.append(temp)
             step += 2
     for sub in array:
@@ -855,3 +927,68 @@ def existedtime():
             tableDurationAge.tolist()
 
         )
+
+@app.route('/updateCount')
+def updatecount():
+    print(request)
+    start = int(request.args['start'])
+    end = int(request.args['end'])
+    Id = request.args['id']
+    value = float(request.args['value'])
+    attribute = request.args['attr']
+    dataset = request.args['dataset']
+
+    data_dict = None
+    if dataset == "medical":
+        data_dict = dictsPatient
+    elif dataset == "sensor":
+        data_dict = dicts
+
+    filtered_data = []
+    for data_record in data_dict[Id]:
+        if int(data_record.time) < start:
+            continue
+        if int(data_record.time) > end:
+            break
+
+        filtered_data.append((float(data_record.getAttribute(attribute)),int(data_record.time)))
+
+    if len(filtered_data) == 0:
+        return json.dumps({'success':True, "relativeUpdates":filtered_data, "intervalCounts": filtered_data}), 200, {'ContentType':'application/json'}
+
+    # calculate update counts in every 1 hour window
+    start_time = start
+    pre_value = None
+    interval_counts = []
+    count = 0
+    for data in filtered_data:
+        time = data[1]
+        if time <= start_time + 3600:
+            pass
+        else:
+            while start_time + 3600 < time:
+                interval_counts.append(count)
+                start_time += 3600
+                count = 0
+
+        if data[0] != pre_value:
+            count +=1
+            pre_value = data[0]
+    interval_counts.append(count)
+
+
+    # calculate relative change
+    filtered_data_value = []
+    filtered_data_time = []
+    for record in filtered_data:
+        filtered_data_value.append(record[0])
+        filtered_data_time.append(record[1])
+
+    filtered_data_np = np.array(filtered_data_value)
+    filtered_data_np = ((filtered_data_np - value) / value ) * 100
+    filtered_data_np = np.round(filtered_data_np, 2)
+
+    result = list(zip(filtered_data_np.tolist(),filtered_data_time))
+
+
+    return json.dumps({'success':True, "relativeUpdates":result, "intervalCounts": interval_counts}), 200, {'ContentType':'application/json'}
