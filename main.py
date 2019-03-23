@@ -39,17 +39,17 @@ class Sensor:
         self.airPressure = airPressure
         self.voltage = voltage
 
-        def getAttribute(self, attr):
-            if attr == "Temperature":
-                return self.temperature
-            elif attr == "Humidity":
-                return self.humidity
-            elif attr == "AirPressure":
-                return self.airPressure
-            elif attr == "Voltage":
-                return self.voltage
-            else:
-                raise Exception("Invalid attribute")
+    def getAttribute(self, attr):
+        if attr == "temperature":
+            return self.temperature
+        elif attr == "humidity":
+            return self.humidity
+        elif attr == "airPressure":
+            return self.airPressure
+        elif attr == "voltage":
+            return self.voltage
+        else:
+            raise Exception("Invalid attribute")
 
 
 class Patient:
