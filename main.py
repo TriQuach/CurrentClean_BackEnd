@@ -10,6 +10,7 @@ import json
 import matplotlib
 from datetime import datetime
 from flask_cors import CORS
+import subprocess
 
 valid_id = ['A434F11F1B05', 'A434F11EEE06', 'A434F11F1684', 'A434F11F1E86', 'A434F11EF48B', 'A434F11F2003',
 				'A434F11EEF0E', 'A434F11EA281', 'A434F11F1D06', 'A434F11F1000', 'A434F11F1606', 'A434F11FF78E',
@@ -156,28 +157,47 @@ initPatient = Patient(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
 dicts = {
     '1': [initSensor]
 }
+dictsUncorrectUpdatePattern = {
+    '1': [initSensor]
+}
 dictsPatient = {
     '999': [initPatient]
 }
-
+dictsPatientHRFreg = {
+    '999': [initPatient]
+}
+dictsUncorrectUpdatePatternMimic = {
+    '999': [initPatient]
+}
 def hashTable():
     sensor0 = Sensor(0,0,0,0,0,0)
     for i in valid_id:
         dicts[i] = [sensor0]
+        dictsUncorrectUpdatePattern[i] = [sensor0]
+
+
 
 def hashTableMimic():
     patient0 = Patient(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
     for i in valid_id_Mimic:
         dictsPatient[i] = [patient0]
+        dictsPatientHRFreg[i] = [patient0]
+        dictsUncorrectUpdatePatternMimic[i] = [patient0]
 
 def removeDefaultValue():
     del dicts['1']
+    del dictsUncorrectUpdatePattern['1']
     del dictsPatient['999']
+    del dictsPatientHRFreg['999']
+    del dictsUncorrectUpdatePatternMimic['999']
 
     for i in valid_id:
         del dicts[i][0]
+        del dictsUncorrectUpdatePattern[i][0]
     for i in valid_id_Mimic:
         del dictsPatient[i][0]
+        del dictsPatientHRFreg[i][0]
+        del dictsUncorrectUpdatePatternMimic[i][0]
 
 # string = [{'id' : 'id1','f': 2},{'id' : 'id2','f': 32}]
 
@@ -788,16 +808,32 @@ def findAllValueAllPatient(arrayCells,start,end):
         array.append(temp)
     return array
 
+
+
+
+
 hashTable()
 hashTableMimic()
 removeDefaultValue()
 readfile()
-readfileMimic()
-# TMP
-temp = initDictDurationAgeMimic(1466410104,1466413373,"1","TMP")
-tableDurationAge = getDurationAgeMimic(1466410104, temp)
+# uncorrectUpdatePattern(dicts)
 
-x = dictsPatient["1"]
+# lengthEachUccorctSensor()
+
+
+
+#
+readfileMimic()
+
+
+# freqOfHR()
+# lengthFreqHR()
+
+# TMP
+# temp = initDictDurationAgeMimic(1466410104,1466413373,"1","TMP")
+# tableDurationAge = getDurationAgeMimic(1466410104, temp)
+#
+# x = dictsPatient["1"]
 
 
 
@@ -927,7 +963,6 @@ def existedtime():
             tableDurationAge.tolist()
 
         )
-
 @app.route('/updateCount')
 def updatecount():
     print(request)
@@ -992,3 +1027,20 @@ def updatecount():
 
 
     return json.dumps({'success':True, "relativeUpdates":result, "intervalCounts": interval_counts}), 200, {'ContentType':'application/json'}
+
+
+@app.route('/imr')
+def imr():
+
+
+    sensorID = request.args.get('id', None)
+    prop = request.args.get('prop', None)
+    order = request.args.get('order', None)
+    delta = request.args.get('delta', None)
+    maxNumIterations = request.args.get('maxNumIterations', None)
+
+    subprocess.call(['java', '-jar', 'IMR.jar', sensorID, prop, order, delta, maxNumIterations])
+
+    f = open("outputRepair.txt", "r")
+    res = f.readline()
+    return json.dumps({'success':True, "imrRepair":res}), 200, {'ContentType':'application/json'}
