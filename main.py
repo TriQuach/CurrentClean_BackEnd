@@ -825,6 +825,32 @@ readfile()
 #
 readfileMimic()
 
+def createRepairArray(isDefault):
+    if (isDefault == True):
+        f = open("outputRepairAllCellsDefault.txt", "r")
+        res = []
+        for line in f:
+            word = line.split('_')
+            sensor_attr = word[0] + '_' + word[1]
+            value = word[2].strip('\n')
+            temp = {}
+            temp['sensor_attr'] = sensor_attr
+            temp['value'] = value
+            res.append(temp)
+        return res
+    else:
+        f = open("outputRepairAllCells.txt", "r")
+        res = []
+        for line in f:
+            word = line.split('_')
+            sensor_attr = word[0] + '_' + word[1]
+            value = word[2].strip('\n')
+            temp = {}
+            temp['sensor_attr'] = sensor_attr
+            temp['value'] = value
+            res.append(temp)
+        return res
+
 
 # freqOfHR()
 # lengthFreqHR()
@@ -1044,3 +1070,21 @@ def imr():
     f = open("outputRepair.txt", "r")
     res = f.readline()
     return json.dumps({'success':True, "imrRepair":res}), 200, {'ContentType':'application/json'}
+
+@app.route('/imrall')
+def imrall():
+
+
+
+    order = request.args.get('order', None)
+    delta = request.args.get('delta', None)
+    maxNumIterations = request.args.get('maxNumIterations', None)
+
+    if (delta == '0.1' and maxNumIterations == '200'):
+        res = createRepairArray(True)
+    else:
+        subprocess.call(['java', '-jar', 'IMRAllCells.jar', delta, maxNumIterations])
+        res = createRepairArray(False)
+
+
+    return json.dumps({'success':True, "imrRepairAllCells":res}), 200, {'ContentType':'application/json'}
